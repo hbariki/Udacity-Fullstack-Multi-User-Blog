@@ -11,13 +11,7 @@ indexes:
 # your application using appcfg.py.
 
 - kind: Post
-  ancestor: yes
   properties:
+  - name: parent_post
   - name: created
-    direction: desc
-
-- kind: Post
-  ancestor: yes
-  properties:
-  - name: date
     direction: desc

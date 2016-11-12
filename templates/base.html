@@ -1,31 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <link type="text/css" rel="stylesheet" href="/static/main.css" />
+  <head>
+    <title>Multi-User-Blog</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
 
-  <title>CS 253 Blog</title>
-</head>
+  <body>
+    <div class="container">
 
-<body>
-  <a href="/blog" class="main-title">
-    CS 253 Blog
-  </a>
+      <div class="row">
+        <div id="header" class="col-xs-12">
+          <h1><a href="/" class="pull-left">Multi-User-Blog</a></h1>
+          <div class="btn-group pull-right" role="group" aria-label="...">
+            {% if uid: %}
+              <a href="/newpost" class="btn btn-primary">New Post</a>
+               
+              <a href="/logout" class="btn btn-primary">logout</a>
+            {% else: %}
+              <a href="/signup" class="btn btn-danger">Sign up</a>
+               
+              <a href="/login" class="btn btn-primary">Login</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
 
-  <div class="login-area">
-    {% if user %}
-      {{user.name}} (<a class="login-link" href="/logout">logout</a>)
-    {% else %}
-      <a class="login-link" href="/login">login</a>
-      |
-      <a class="login-link" href="/signup">signup</a>
-    {% endif %}
-  </div>
+      <div class="row">
+        <div class="col-xs-12 col-sm-10 col-sm-offset-1">
+          {% block content %}
+          {% endblock %}
+        </div>
+      </div>
 
-  <div id="content">
-  {% block content %}
-  {% endblock %}
-  </div>
-</body>
+    </div>
+  </body>
 
 </html>
-

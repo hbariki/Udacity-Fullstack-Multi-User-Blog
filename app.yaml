@@ -1,8 +1,8 @@
-application: udacity-cs253
-version: 1
 runtime: python27
-api_version: 1
+version: 1
 threadsafe: true
+api_version: 1
+application: first-kite-149320
 
 handlers:
 - url: /static
