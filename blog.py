@@ -22,24 +22,37 @@ def render_str(template, **params):
     return t.render(params)
 
 def make_secure_val(val):
-    ## creates a secure value using secret
+    """
+    make_secure_val : creates a secure value using secret
+
+    """
     return '%s|%s' % (val, hmac.new(secret, val).hexdigest())
 
 def check_secure_val(secure_val):
-    ## verifies secure value against secret
+    """
+    verifies secure value against secret
+    """
     val = secure_val.split('|')[0]
     if secure_val == make_secure_val(val):
         return val
 
-#### This is blogHandler class, inherits webapp2.RequestHandler
+
 
 class BlogHandler(webapp2.RequestHandler):
+    """
+      Blog Handler : This is blog handler class, inherits webapp2.RequestHandler,
+      and provides helper methods
+    """  
     def write(self, *a, **kw):
-        ## This method writes output to client browser
+        """
+          write : This method writes output to client browser
+        """  
         self.response.out.write(*a, **kw)
 
     def render_str(self, template, **params):
-        ## This method renders html using template
+        """
+         render_str :This method renders html using template
+        """ 
         params['user'] = self.user
         return render_str(template, **params)
 
@@ -47,26 +60,40 @@ class BlogHandler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
     def set_secure_cookie(self, name, val):
-        # sets cookie to the browser
+        """
+          set_secure_cookie: Sets cookie to the browser
+        """  
         cookie_val = make_secure_val(val)
         self.response.headers.add_header(
             'Set-Cookie',
             '%s=%s; Path=/' % (name, cookie_val))
 
     def read_secure_cookie(self, name):
-        # Read secure cookie to the browser
+        """
+         read_secure_cookie :Read secure cookie to the browser
+         
+        """
         cookie_val = self.request.cookies.get(name)
         return cookie_val and check_secure_val(cookie_val)
 
     def login(self, user):
-        # verifies user existence
+        """
+         login : verifies user existence
+        """
         self.set_secure_cookie('user_id', str(user.key().id()))
 
     def logout(self):
-        # removes login information 
+        """
+          logout: removes login information
+          
+        """
         self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
 
     def initialize(self, *a, **kw):
+        """
+          This method gets executed for every page and verifies user login status,
+          using cookie information
+        """
         webapp2.RequestHandler.initialize(self, *a, **kw)
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.by_id(int(uid))
@@ -94,9 +121,12 @@ def valid_pw(name, password, h):
 def users_key(group = 'default'):
     return db.Key.from_path('users', group)
 
-#### Create's User model for database - includes user model functions
+
 
 class User(db.Model):
+    """
+      User : create's User model for database - includes user model functions
+    """  
     name = db.StringProperty(required = True)
     pw_hash = db.StringProperty(required = True)
     email = db.StringProperty()
@@ -130,9 +160,22 @@ class User(db.Model):
 def blog_key(name = 'default'):
     return db.Key.from_path('blogs', name)
 
-#### Create's Post model for database - includes post model functions
-#
+
+
 class Post(db.Model):
+    """
+     Post : This is Post Class, which holds blog post information. And helps
+     to store/retrieve User data from database
+
+    Attributes :
+          subject(str) : This is subject line of the post
+          content(txt) : This is content of the post.
+          created(text) : This is date of the post.
+          user_id : This is user_id, who wrote blog post.
+          likes : show likes of the post
+
+     """     
+    
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
@@ -146,19 +189,27 @@ class Post(db.Model):
         return render_str("post.html", p = self)
 
 
-#### Front Page of Blog - shows all posts
+
 
 class BlogFront(BlogHandler):
+    """
+       Blog Front : Shows Blog Front page
+
+    """   
     def get(self):
         posts = Post.all().filter('parent_post =', None).order('-created')
         uid = self.read_secure_cookie('user_id')
 
         self.render('front.html', posts = posts, uid=uid)
 
-#### Single Post Page - shows individual post based on id in URL.
-#### Also Handles Comments
+
 
 class PostPage(BlogHandler):
+    """
+      PostPage : shows individual post based on id in URL
+
+    """  
+      
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -176,20 +227,18 @@ class PostPage(BlogHandler):
 
 
         for comment in comments:
-            print(comments)
-
+            print(comments)    
 
         if not post:
             self.error(404)
             return
-
         post._render_text = post.content.replace('\n', '<br>')
 
         self.render("post.html", post = post, likeText = likeText, totalLikes = totalLikes, uid = uid, comments = comments)
 
     def post(self, post_id):
         if not self.user:
-            self.redirect('/')
+           return self.redirect('/')
 
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -199,14 +248,18 @@ class PostPage(BlogHandler):
         if subject and content:
             post = Post(parent = blog_key(), subject = subject, content = content, user_id = uid, parent_post = post_id)
             post.put()
-            self.redirect('/post/%s' % post_id)
+            return self.redirect('/post/%s' % post_id)
         else:
             error = "subject and content, please!"
             self.render("post.html", subject=subject, content=content, error=error)
 
-#### Logs a like for the post with the id in url
+
 
 class LikePage(BlogHandler):
+    """
+      LikePage : Logs a like for the post with the id in url
+
+    """  
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -233,9 +286,13 @@ class LikePage(BlogHandler):
             error = 'you can\'t like or unlike you own post'
             self.render("error.html", error = error)
 
-#### Delete's page based on id in url
+
 
 class DeletePage(BlogHandler):
+    """
+      DeletePage : Delete's page based on id in url
+
+    """  
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -254,9 +311,13 @@ class DeletePage(BlogHandler):
 
         self.render("delete.html", error = error)
 
-#### Allows the user of the post to edit page. If they are not the user, display warning.
+
 
 class EditPage(BlogHandler):
+    """
+      EditPage : Allows the user of the post to edit page. If they are not the user, display warning
+
+    """
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -296,9 +357,12 @@ class EditPage(BlogHandler):
             error = "subject and content, please!"
             self.render("edit.html", post = post, error=error)
 
-#### If the user is signed in, allow for the creation of a new post
 
 class NewPost(BlogHandler):
+    """
+      NewPost : If the user is signed in, allow for the creation of a new post
+
+    """
     def get(self):
         uid = self.read_secure_cookie('user_id')
         # if self.user.email == "harshinibariki@gmail.com":
@@ -310,11 +374,11 @@ class NewPost(BlogHandler):
             # self.render('front.html', posts = posts, uid=uid, error=error)
             self.render("newpost.html",  uid=uid)
         else:
-            self.redirect("/login")
+          return self.redirect("/login")
 
     def post(self):
         if not self.user:
-            self.redirect('/login')
+           return self.redirect('/login')
 
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -329,7 +393,7 @@ class NewPost(BlogHandler):
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
 
-#### Validation for username, password and email
+
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
@@ -343,9 +407,13 @@ EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
-#### Handles the signup page, shows error if the fields do not match the validation's above.
+
 
 class Signup(BlogHandler):
+    """
+     Signup : Handles the signup page, shows error if the fields do not match the validation's above.
+
+    """
     def get(self):
         self.render("signup.html")
 
@@ -382,9 +450,11 @@ class Signup(BlogHandler):
     def done(self, *a, **kw):
         raise NotImplementedError
 
-#### Create new user for blog
 
 class Register(Signup):
+    """
+       Register : creates new user for blog
+    """  
     def done(self):
         #make sure the user doesn't already exist
         u = User.by_name(self.username)
@@ -396,11 +466,12 @@ class Register(Signup):
             u.put()
 
             self.login(u)
-            self.redirect('/blog')
-
-#### Handles login for blog
+            self.redirect('/')
 
 class Login(BlogHandler):
+    """
+      Login : Handles login for log
+    """  
     def get(self):
         self.render('login.html')
 
@@ -411,21 +482,26 @@ class Login(BlogHandler):
         u = User.login(username, password)
         if u:
             self.login(u)
-            self.redirect('/blog')
+            self.redirect('/')
         else:
             msg = 'Invalid login'
             self.render('login.html', error = msg)
 
-#### Log's out user
+
 
 class Logout(BlogHandler):
+    """
+     Logout : Logouts the user
+    """ 
     def get(self):
         self.logout()
-        self.redirect('/blog')
+        self.redirect('/')
 
-#### Welcome page after a user succesfully logs in
 
 class Welcome(BlogHandler):
+    """
+    Welcome : welcome page after a user succesfully logs in
+    """
     def get(self):
         if self.user:
             uid = self.read_secure_cookie('user_id')
@@ -433,7 +509,7 @@ class Welcome(BlogHandler):
         else:
             self.redirect('/signup')
 
-app = webapp2.WSGIApplication([('/blog/?', BlogFront),
+app = webapp2.WSGIApplication([('/?', BlogFront),
                                ('/post/([0-9]+)', PostPage),
                                ('/delete/([0-9]+)', DeletePage),
                                ('/edit/([0-9]+)', EditPage),
